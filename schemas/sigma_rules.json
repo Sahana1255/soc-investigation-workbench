@@ -1,0 +1,37 @@
+{
+    "4625":{
+        "rule":"Failed Login",
+        "severity":"Medium",
+        "description":"Failed authentication detected."
+    },
+
+    "4672":{
+        "rule":"Privilege Escalation",
+        "severity":"High",
+        "description":"Administrative privileges assigned."
+    },
+
+    "4688":{
+        "rule":"Process Creation",
+        "severity":"Medium",
+        "description":"New process created."
+    },
+
+    "4698":{
+        "rule":"Scheduled Task",
+        "severity":"High",
+        "description":"Scheduled task created."
+    },
+
+    "4720":{
+        "rule":"User Created",
+        "severity":"High",
+        "description":"New user account."
+    },
+
+    "4740":{
+        "rule":"Account Locked",
+        "severity":"Medium",
+        "description":"Account lockout."
+    }
+}

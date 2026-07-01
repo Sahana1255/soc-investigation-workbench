@@ -1,0 +1,21 @@
+{
+    "4624": {
+        "name": "Successful Logon",
+        "severity": "Informational"
+    },
+
+    "4625": {
+        "name": "Failed Logon",
+        "severity": "Medium"
+    },
+
+    "4688": {
+        "name": "Process Creation",
+        "severity": "High"
+    },
+
+    "4720": {
+        "name": "User Account Created",
+        "severity": "High"
+    }
+}

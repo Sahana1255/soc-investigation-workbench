@@ -1,0 +1,39 @@
+flowchart TD
+
+A[Evidence Files]
+
+A --> B[Evidence Classifier]
+
+B --> C[Parser Engine]
+
+C --> D1[Windows Parser]
+C --> D2[Linux Parser]
+C --> D3[Firewall Parser]
+C --> D4[Email Parser]
+C --> D5[CSV Parser]
+
+D1 --> E[Structured Events]
+D2 --> E
+D3 --> E
+D4 --> E
+D5 --> E
+
+E --> F[Investigation Engine]
+
+F --> G1[IOC Extraction]
+F --> G2[Sigma Detection]
+F --> G3[MITRE Mapping]
+F --> G4[Risk Assessment]
+
+G1 --> H[Correlation Engine]
+G2 --> H
+G3 --> H
+G4 --> H
+
+H --> I[Case Manager]
+
+I --> J[(SQLite Database)]
+
+J --> K[Streamlit Dashboard]
+
+K --> L[PDF Reports]

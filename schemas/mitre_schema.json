@@ -1,0 +1,49 @@
+{
+    "4624":{
+        "attack_id":"T1078",
+        "tactic":"Initial Access",
+        "technique":"Valid Accounts"
+    },
+
+    "4625":{
+        "attack_id":"T1110",
+        "tactic":"Credential Access",
+        "technique":"Brute Force"
+    },
+
+    "4672":{
+        "attack_id":"T1078.003",
+        "tactic":"Privilege Escalation",
+        "technique":"Privileged Account"
+    },
+
+    "4688":{
+        "attack_id":"T1059",
+        "tactic":"Execution",
+        "technique":"Command Execution"
+    },
+
+    "4698":{
+        "attack_id":"T1053",
+        "tactic":"Persistence",
+        "technique":"Scheduled Task"
+    },
+
+    "4720":{
+        "attack_id":"T1136",
+        "tactic":"Persistence",
+        "technique":"Create Account"
+    },
+
+    "4728":{
+        "attack_id":"T1098",
+        "tactic":"Privilege Escalation",
+        "technique":"Account Manipulation"
+    },
+
+    "4740":{
+        "attack_id":"T1110",
+        "tactic":"Credential Access",
+        "technique":"Account Lockout"
+    }
+}

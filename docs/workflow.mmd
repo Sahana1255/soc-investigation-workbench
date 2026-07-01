@@ -1,0 +1,27 @@
+flowchart TD
+
+A[Upload Evidence]
+
+A --> B[Classify Evidence]
+
+B --> C[Parse Evidence]
+
+C --> D[Create Event Objects]
+
+D --> E[Extract IOCs]
+
+E --> F[Sigma Detection]
+
+F --> G[MITRE ATT&CK Mapping]
+
+G --> H[Risk Assessment]
+
+H --> I[Correlation]
+
+I --> J[Create Case]
+
+J --> K[Save Database]
+
+K --> L[Dashboard]
+
+L --> M[Generate Report]

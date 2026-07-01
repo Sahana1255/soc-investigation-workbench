@@ -1,0 +1,33 @@
+{
+    "windows":[
+        ".evtx"
+    ],
+
+    "linux":[
+        ".log"
+    ],
+
+    "email":[
+        ".eml",
+        ".msg",
+        ".txt"
+    ],
+
+    "csv":[
+        ".csv"
+    ],
+
+    "ioc":[
+        ".ioc",
+        ".json"
+    ],
+
+    "firewall":[
+        "firewall.csv",
+        "fortigate.csv",
+        "fortinet.csv",
+        "paloalto.csv",
+        "asa.csv",
+        "traffic.csv"
+    ]
+}

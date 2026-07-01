@@ -1,0 +1,21 @@
+{
+    "powershell":"PowerShell Execution",
+
+    "cmd.exe":"Command Execution",
+
+    "mimikatz":"Credential Dumping",
+
+    "procdump":"Memory Dump",
+
+    "regsvr32":"LOLBin Execution",
+
+    "rundll32":"DLL Execution",
+
+    "wmic":"WMI Execution",
+
+    "psexec":"Remote Execution",
+
+    "bitsadmin":"BITS Transfer",
+
+    "certutil":"Certificate Utility Abuse"
+}

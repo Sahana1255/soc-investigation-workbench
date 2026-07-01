@@ -1,0 +1,17 @@
+services:
+
+  soc-investigation-workbench:
+
+    build: .
+
+    container_name: soc-investigation-workbench
+
+    ports:
+
+      - "8501:8501"
+
+    volumes:
+
+      - .:/app
+
+    restart: unless-stopped

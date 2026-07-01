@@ -1,0 +1,17 @@
+{
+    "ips":[
+        "45.33.32.156",
+        "185.220.101.1",
+        "192.168.56.10"
+    ],
+
+    "domains":[
+        "evil.com",
+        "phishing.test",
+        "malware.test"
+    ],
+
+    "hashes":[
+        "44d88612fea8a8f36de82e1278abb02f"
+    ]
+}
