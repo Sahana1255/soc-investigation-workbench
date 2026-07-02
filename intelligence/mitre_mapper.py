@@ -11,26 +11,61 @@ class MitreMapper:
             "schemas/mitre_schema.json"
         )
 
+        # Cache event_code -> Technique
+        self.cache = {}
+
     def map(self, event):
 
         if event.event_code is None:
             return None
 
-        rule = self.rules.get(
-            str(event.event_code)
-        )
+        event_code = str(event.event_code)
+
+        # -------------------------------
+        # Return cached mapping
+        # -------------------------------
+
+        if event_code in self.cache:
+
+            return self.cache[event_code]
+
+        # -------------------------------
+        # Load rule
+        # -------------------------------
+
+        rule = self.rules.get(event_code)
 
         if not rule:
             return None
 
-        return Technique(
+        technique = Technique(
 
-            attack_id="T1110",
+            attack_id=rule.get(
+                "attack_id",
+                ""
+            ),
 
-            tactic="Credential Access",
+            tactic=rule.get(
+                "tactic",
+                "Unknown"
+            ),
 
-            technique="Brute Force",
+            technique=rule.get(
+                "technique",
+                "Unknown"
+            ),
 
-            description="Brute force authentication attempts."
+            description=rule.get(
+                "description",
+                ""
+            )
 
         )
+
+        # -------------------------------
+        # Store in cache
+        # -------------------------------
+
+        self.cache[event_code] = technique
+
+        return technique

@@ -9,23 +9,53 @@ class RiskEngine:
             "schemas/risk_schema.json"
         )
 
+        # Cache base risk by Event ID
+        self.cache = {}
+
     def assess(self, investigation):
 
-        score = self.scores.get(
-            str(investigation.event.event_code),
-            1
+        event_code = str(
+            investigation.event.event_code
         )
+
+        # ---------------------------------------
+        # Get cached base score
+        # ---------------------------------------
+
+        if event_code in self.cache:
+
+            score = self.cache[event_code]
+
+        else:
+
+            score = self.scores.get(
+                event_code,
+                1
+            )
+
+            self.cache[event_code] = score
+
+        # ---------------------------------------
+        # IOC reputation adjustment
+        # ---------------------------------------
 
         for ioc in investigation.iocs:
 
-            if getattr(ioc, "reputation", "") == "Malicious":
+            if getattr(
+                ioc,
+                "reputation",
+                ""
+            ) == "Malicious":
 
                 score += 25
 
-        investigation.risk_score = min(
-            score,
-            100
-        )
+        score = min(score, 100)
+
+        investigation.risk_score = score
+
+        # ---------------------------------------
+        # Severity
+        # ---------------------------------------
 
         if score >= 75:
 

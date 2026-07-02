@@ -14,6 +14,7 @@ from correlation.correlation_engine import CorrelationEngine
 from investigation.case_manager import CaseManager
 
 from utils.logger import Logger
+from utils.performance import timer
 
 
 class SOCEngine:
@@ -35,219 +36,233 @@ class SOCEngine:
         self.database = DatabaseService()
 
     def investigate(
-    self,
-    title,
-    evidence_files,
-    description="",
-    analyst=None,
-    max_events=None
-):
+        self,
+        title,
+        evidence_files,
+        description="",
+        analyst=None,
+        max_events=None
+    ):
 
-        self.logger.info(
-            f"Starting investigation: {title}"
-        )
-
-        incident = Incident(
-
-            title=title,
-
-            description=description,
-
-            assigned_analyst=analyst
-
-        )
-
-        self.logger.info(
-            f"Received {len(evidence_files)} evidence file(s)."
-        )
-
-        # ----------------------------------------------------
-        # Register Evidence
-        # ----------------------------------------------------
-
-        for file in evidence_files:
-
-            path = Path(file)
-
-            platform = self.classifier.classify(file)
+        with timer("TOTAL INVESTIGATION"):
 
             self.logger.info(
-                f"Evidence: {path.name} -> {platform}"
+                f"Starting investigation: {title}"
             )
 
-            incident.evidence.append(
+            incident = Incident(
 
-                Evidence(
+                title=title,
 
-                    filename=path.name,
+                description=description,
 
-                    filepath=path,
+                assigned_analyst=analyst
 
-                    file_type=path.suffix,
+            )
 
-                    platform=platform
+            self.logger.info(
+                f"Received {len(evidence_files)} evidence file(s)."
+            )
+
+            # ----------------------------------------------------
+            # Register Evidence
+            # ----------------------------------------------------
+
+            for file in evidence_files:
+
+                path = Path(file)
+
+                platform = self.classifier.classify(file)
+
+                self.logger.info(
+                    f"Evidence: {path.name} -> {platform}"
+                )
+
+                incident.evidence.append(
+
+                    Evidence(
+
+                        filename=path.name,
+
+                        filepath=path,
+
+                        file_type=path.suffix,
+
+                        platform=platform
+
+                    )
 
                 )
 
+            # ----------------------------------------------------
+            # Parse Evidence
+            # ----------------------------------------------------
+
+            with timer("Parser"):
+
+                events = self.parser.parse(
+                    incident.evidence,
+                    max_events=max_events
+                )
+
+            self.logger.info(
+                f"Parsed {len(events)} event(s)."
             )
 
-        # ----------------------------------------------------
-        # Parse Evidence
-        # ----------------------------------------------------
+            # ----------------------------------------------------
+            # Investigation
+            # ----------------------------------------------------
 
-        events = self.parser.parse(
-    incident.evidence,
-    max_events=max_events
-)
+            with timer("Investigation"):
 
-        self.logger.info(
-            f"Parsed {len(events)} event(s)."
-        )
+                investigations = self.investigation.investigate(
+                    events
+                )
 
-        # ----------------------------------------------------
-        # Investigate Events
-        # ----------------------------------------------------
+            self.logger.info(
+                f"Generated {len(investigations)} investigation result(s)."
+            )
 
-        investigations = self.investigation.investigate(
-            events
-        )
+            # ----------------------------------------------------
+            # Correlation
+            # ----------------------------------------------------
 
-        self.logger.info(
-            f"Generated {len(investigations)} investigation result(s)."
-        )
+            with timer("Correlation"):
 
-        # ----------------------------------------------------
-        # Correlation
-        # ----------------------------------------------------
+                correlation = self.correlation.correlate(
+                    investigations
+                )
 
-        correlation = self.correlation.correlate(
-            investigations
-        )
+            self.logger.info(
 
-        self.logger.info(
+                f"Generated "
+                f"{correlation.get('relationship_count', 0)} "
+                f"relationship(s)."
 
-            f"Generated "
-            f"{correlation.get('relationship_count', 0)} "
-            f"relationship(s)."
+            )
 
-        )
+            # ----------------------------------------------------
+            # Populate Incident
+            # ----------------------------------------------------
 
-        # ----------------------------------------------------
-        # Populate Incident
-        # ----------------------------------------------------
+            incident.events = [
 
-        incident.events = [
-
-            item.event
-
-            for item in investigations
-
-        ]
-
-        incident.iocs = [
-
-            ioc
-
-            for item in investigations
-
-            for ioc in item.iocs
-
-        ]
-
-        incident.relationships = correlation.get(
-
-            "relationships",
-
-            []
-
-        )
-
-        if investigations:
-
-            incident.risk_score = max(
-
-                item.risk_score
+                item.event
 
                 for item in investigations
 
-            )
+            ]
 
-            severity_order = [
+            incident.iocs = [
 
-                "Low",
+                ioc
 
-                "Medium",
+                for item in investigations
 
-                "High",
-
-                "Critical"
+                for ioc in item.iocs
 
             ]
 
-            incident.severity = max(
+            incident.relationships = correlation.get(
 
-                (
+                "relationships",
 
-                    item.severity
-
-                    for item in investigations
-
-                ),
-
-                key=severity_order.index
+                []
 
             )
 
-        # ----------------------------------------------------
-        # Case Management
-        # ----------------------------------------------------
+            if investigations:
 
-        case = self.case_manager.create(
-            incident
-        )
+                incident.risk_score = max(
 
-        self.database.save_case(
-            case
-        )
+                    item.risk_score
 
-        self.database.save_incident(
-            incident
-        )
+                    for item in investigations
 
-        self.logger.info(
+                )
 
-            f"Case {case['case_id']} saved."
+                severity_order = [
 
-        )
+                    "Low",
 
-        self.logger.info(
+                    "Medium",
 
-            f"Incident {incident.incident_id} completed."
+                    "High",
 
-        )
+                    "Critical"
 
-        self.logger.info(
+                ]
 
-            f"Summary | "
+                incident.severity = max(
 
-            f"Events={len(incident.events)}, "
+                    (
 
-            f"IOCs={len(incident.iocs)}, "
+                        item.severity
 
-            f"Risk={incident.risk_score}, "
+                        for item in investigations
 
-            f"Severity={incident.severity}"
+                    ),
 
-        )
+                    key=severity_order.index
 
-        return {
+                )
 
-            "case": case,
+            # ----------------------------------------------------
+            # Case Management
+            # ----------------------------------------------------
 
-            "incident": incident,
+            case = self.case_manager.create(
+                incident
+            )
 
-            "investigations": investigations,
+            # ----------------------------------------------------
+            # Database
+            # ----------------------------------------------------
 
-            "correlation": correlation
+            with timer("Database Save"):
 
-        }
+                self.database.save_case(
+                    case
+                )
+
+                self.database.save_incident(
+                    incident
+                )
+
+            self.logger.info(
+
+                f"Case {case['case_id']} saved."
+
+            )
+
+            self.logger.info(
+
+                f"Incident {incident.incident_id} completed."
+
+            )
+
+            self.logger.info(
+
+                f"Summary | "
+
+                f"Events={len(incident.events)}, "
+
+                f"IOCs={len(incident.iocs)}, "
+
+                f"Risk={incident.risk_score}, "
+
+                f"Severity={incident.severity}"
+
+            )
+
+            return {
+
+                "case": case,
+
+                "incident": incident,
+
+                "investigations": investigations,
+
+                "correlation": correlation
+
+            }
