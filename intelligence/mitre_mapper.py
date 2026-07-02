@@ -25,12 +25,12 @@ class MitreMapper:
 
         return Technique(
 
-            framework="MITRE ATT&CK",
+            attack_id="T1110",
 
-            attack_id=rule["attack_id"],
+            tactic="Credential Access",
 
-            tactic=rule["tactic"],
+            technique="Brute Force",
 
-            technique=rule["technique"]
+            description="Brute force authentication attempts."
 
         )

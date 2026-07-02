@@ -5,6 +5,10 @@ from models.relationship import Relationship
 
 class CorrelationEngine:
 
+    # Maximum number of events to correlate per shared value.
+    # Prevents exponential relationship generation.
+    MAX_EVENTS_PER_GROUP = 50
+
     def correlate(self, investigations):
 
         relationships = []
@@ -65,8 +69,16 @@ class CorrelationEngine:
 
             for technique in investigation.techniques:
 
+                # Use official MITRE ID if available,
+                # otherwise fall back to technique name.
+                key = getattr(
+                    technique,
+                    "attack_id",
+                    None
+                ) or technique.technique
+
                 indexes["technique"][
-                    technique.attack_id
+                    key
                 ].append(event)
 
         # -------------------------------------------------
@@ -81,6 +93,12 @@ class CorrelationEngine:
 
                     continue
 
+                # Limit correlation size to avoid millions
+                # of relationships for very common values.
+                events = events[
+                    :self.MAX_EVENTS_PER_GROUP
+                ]
+
                 for i in range(len(events) - 1):
 
                     for j in range(i + 1, len(events)):
@@ -89,9 +107,13 @@ class CorrelationEngine:
 
                             Relationship(
 
-                                source=str(events[i].event_id),
+                                source=str(
+                                    events[i].event_id
+                                ),
 
-                                target=str(events[j].event_id),
+                                target=str(
+                                    events[j].event_id
+                                ),
 
                                 relationship_type="RELATED",
 

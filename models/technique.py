@@ -4,16 +4,21 @@ from pydantic import BaseModel, Field
 
 
 class Technique(BaseModel):
-    technique_id:str=Field(default_factory=lambda:f"TEC-{uuid4().hex[:8].upper()}")
 
-    framework:str="MITRE ATT&CK"
+    technique_id: str = Field(
+        default_factory=lambda: f"TEC-{uuid4().hex[:8].upper()}"
+    )
 
-    tactic:str
+    framework: str = "MITRE ATT&CK"
 
-    technique:str
+    attack_id: str = ""
 
-    description:str=""
+    tactic: str
 
-    confidence:int=100
+    technique: str
 
-    related_events:List[str]=Field(default_factory=list)
+    description: str = ""
+
+    confidence: int = 100
+
+    related_events: List[str] = Field(default_factory=list)
