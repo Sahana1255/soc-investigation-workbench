@@ -1,38 +1,43 @@
 class IOCDatabase:
 
-    DATABASE = {
+    MALICIOUS_IPS = {
 
-        "IP": {
+        "185.220.101.1",
 
-            "185.220.101.1",
+        "45.33.32.156",
 
-            "45.33.32.156",
+        "8.8.8.8"
 
-            "8.8.8.8"
+    }
 
-        },
+    MALICIOUS_DOMAINS = {
 
-        "Domain": {
+        "evil.com",
 
-            "evil.com",
+        "malware.test",
 
-            "malware.test",
+        "phishing.test"
 
-            "phishing.test"
+    }
 
-        },
+    MALICIOUS_HASHES = {
 
-        "Hash": {
-
-            "44d88612fea8a8f36de82e1278abb02f"
-
-        }
+        "44d88612fea8a8f36de82e1278abb02f"
 
     }
 
     def lookup(self, ioc):
 
-        return ioc.value in self.DATABASE.get(
-            ioc.type,
-            set()
-        )
+        if ioc.type == "IP":
+
+            return ioc.value in self.MALICIOUS_IPS
+
+        if ioc.type == "Domain":
+
+            return ioc.value in self.MALICIOUS_DOMAINS
+
+        if ioc.type == "Hash":
+
+            return ioc.value in self.MALICIOUS_HASHES
+
+        return False

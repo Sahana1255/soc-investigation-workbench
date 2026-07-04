@@ -2,19 +2,12 @@ from uuid import uuid4
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field
 
 
 class Event(BaseModel):
 
-    model_config = ConfigDict(
-        validate_assignment=False,
-        extra="ignore"
-    )
-
-    event_id: str = Field(
-        default_factory=lambda: f"EVT-{uuid4().hex[:8].upper()}"
-    )
+    event_id: str = Field(default_factory=lambda: f"EVT-{uuid4().hex[:8].upper()}")
 
     timestamp: datetime
 

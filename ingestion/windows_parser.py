@@ -1,10 +1,10 @@
 from datetime import datetime
-from time import perf_counter
+import xml.etree.ElementTree as ET
 
-from lxml import etree as ET
 from Evtx.Evtx import Evtx
 
 from models.event import Event
+
 from ingestion.base_parser import BaseParser
 
 from utils.logger import Logger
@@ -28,32 +28,43 @@ class WindowsParser(BaseParser):
 
     def parse_system(self, root):
 
-        namespace = self.NAMESPACE
-
-        system = root.find(
-            "e:System",
-            namespace
-        )
+        system = root.find("e:System", self.NAMESPACE)
 
         if system is None:
-            return None
+            return {}
 
-        event_id = self.get_text(
-            system,
-            "e:EventID"
+        event = {}
+
+        event["event_code"] = self.get_text(system, "e:EventID")
+
+        event["hostname"] = self.get_text(system, "e:Computer")
+
+        time = system.find(
+            "e:TimeCreated",
+            self.NAMESPACE
         )
 
-        hostname = self.get_text(
-            system,
-            "e:Computer"
-        )
+        if time is not None:
+
+            event["timestamp"] = datetime.fromisoformat(
+
+                time.attrib["SystemTime"].replace(
+                    "Z",
+                    "+00:00"
+                )
+
+            )
+
+        else:
+
+            event["timestamp"] = datetime.now()
 
         provider = system.find(
             "e:Provider",
-            namespace
+            self.NAMESPACE
         )
 
-        source = (
+        event["source"] = (
 
             provider.attrib.get(
                 "Name",
@@ -66,64 +77,27 @@ class WindowsParser(BaseParser):
 
         )
 
-        time_node = system.find(
-            "e:TimeCreated",
-            namespace
-        )
-
-        if (
-            time_node is not None
-            and "SystemTime" in time_node.attrib
-        ):
-
-            timestamp = datetime.fromisoformat(
-
-                time_node.attrib["SystemTime"].replace(
-                    "Z",
-                    "+00:00"
-                )
-
-            )
-
-        else:
-
-            timestamp = datetime.now()
-
-        return {
-
-            "event_code": event_id,
-
-            "hostname": hostname,
-
-            "timestamp": timestamp,
-
-            "source": source
-
-        }
+        return event
 
     def parse_event_data(self, root):
 
-        namespace = self.NAMESPACE
+        values = {}
 
         eventdata = root.find(
             "e:EventData",
-            namespace
+            self.NAMESPACE
         )
 
         if eventdata is None:
 
-            return {}
-
-        values = {}
+            return values
 
         for data in eventdata.findall(
             "e:Data",
-            namespace
+            self.NAMESPACE
         ):
 
-            name = data.attrib.get(
-                "Name"
-            )
+            name = data.attrib.get("Name")
 
             if name:
 
@@ -132,52 +106,43 @@ class WindowsParser(BaseParser):
         return values
 
     def build_event(
-
         self,
-
         xml,
-
         system,
-
         eventdata,
-
         evidence
-
     ):
-
-        username = (
-
-            eventdata.get("SubjectUserName")
-
-            or
-
-            eventdata.get("TargetUserName")
-
-        )
 
         return Event(
 
-            timestamp=system["timestamp"],
+            timestamp=system.get(
+                "timestamp",
+                datetime.now()
+            ),
 
             event_code=(
-
                 int(system["event_code"])
-
-                if system["event_code"]
-
+                if system.get("event_code")
                 else None
-
             ),
 
             event_type="Windows Event",
 
             platform="Windows",
 
-            source=system["source"],
+            source=system.get(
+                "source",
+                "Windows"
+            ),
 
-            username=username,
+            username=(
+                eventdata.get("SubjectUserName")
+                or eventdata.get("TargetUserName")
+            ),
 
-            hostname=system["hostname"],
+            hostname=system.get(
+                "hostname"
+            ),
 
             source_ip=eventdata.get(
                 "IpAddress"
@@ -202,44 +167,22 @@ class WindowsParser(BaseParser):
         )
 
     def parse(
-
         self,
-
         evidence,
-
         max_events=None
-
     ):
 
         events = []
 
-        append = events.append
-
-        logger = self.logger
-
-        logger.info(
-
+        self.logger.info(
             f"Parsing Windows EVTX: {evidence.filename}"
-
         )
-
-        # -------------------------
-        # Performance Counters
-        # -------------------------
-
-        xml_time = 0.0
-        xml_parse_time = 0.0
-        system_time = 0.0
-        eventdata_time = 0.0
-        build_time = 0.0
 
         with Evtx(
             str(evidence.filepath)
         ) as log:
 
-            for index, record in enumerate(
-                log.records()
-            ):
+            for index, record in enumerate(log.records()):
 
                 if (
                     max_events is not None
@@ -249,121 +192,40 @@ class WindowsParser(BaseParser):
 
                 try:
 
-                    # -------------------------
-                    # record.xml()
-                    # -------------------------
-
-                    start = perf_counter()
-
                     xml = record.xml()
 
-                    xml_time += (
-                        perf_counter() - start
-                    )
+                    root = ET.fromstring(xml)
 
-                    # -------------------------
-                    # XML Parsing
-                    # -------------------------
+                    system = self.parse_system(root)
 
-                    start = perf_counter()
+                    eventdata = self.parse_event_data(root)
 
-                    root = ET.fromstring(
-                        xml.encode("utf-8")
-                    )
+                    event = self.build_event(
 
-                    xml_parse_time += (
-                        perf_counter() - start
-                    )
+                        xml,
 
-                    # -------------------------
-                    # System
-                    # -------------------------
+                        system,
 
-                    start = perf_counter()
+                        eventdata,
 
-                    system = self.parse_system(
-                        root
-                    )
-
-                    system_time += (
-                        perf_counter() - start
-                    )
-
-                    if system is None:
-                        continue
-
-                    # -------------------------
-                    # Event Data
-                    # -------------------------
-
-                    start = perf_counter()
-
-                    eventdata = self.parse_event_data(
-                        root
-                    )
-
-                    eventdata_time += (
-                        perf_counter() - start
-                    )
-
-                    # -------------------------
-                    # Event Object
-                    # -------------------------
-
-                    start = perf_counter()
-
-                    append(
-
-                        self.build_event(
-
-                            xml,
-
-                            system,
-
-                            eventdata,
-
-                            evidence
-
-                        )
+                        evidence
 
                     )
 
-                    build_time += (
-                        perf_counter() - start
-                    )
+                    events.append(event)
 
                 except Exception:
 
-                    logger.exception(
+                    self.logger.exception(
 
                         f"Failed parsing record {index}"
 
                     )
 
-        logger.info(
+        self.logger.info(
 
             f"Parsed {len(events)} Windows event(s)."
 
-        )
-
-        logger.info(
-            f"record.xml()       : {xml_time:.2f}s"
-        )
-
-        logger.info(
-            f"XML Parsing        : {xml_parse_time:.2f}s"
-        )
-
-        logger.info(
-            f"parse_system()     : {system_time:.2f}s"
-        )
-
-        logger.info(
-            f"parse_event_data() : {eventdata_time:.2f}s"
-        )
-
-        logger.info(
-            f"build_event()      : {build_time:.2f}s"
         )
 
         return events

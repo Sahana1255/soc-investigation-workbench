@@ -7,30 +7,11 @@ class ReputationEngine:
 
         self.database = IOCDatabase()
 
-        self.cache = {}
-
     def enrich(self, investigation):
-
-        cache = self.cache
-
-        lookup = self.database.lookup
 
         for ioc in investigation.iocs:
 
-            key = (
-                ioc.type,
-                ioc.value.lower()
-            )
-
-            result = cache.get(key)
-
-            if result is None:
-
-                result = lookup(ioc)
-
-                cache[key] = result
-
-            if result:
+            if self.database.lookup(ioc):
 
                 ioc.reputation = "Malicious"
 

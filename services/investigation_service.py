@@ -1,6 +1,5 @@
-from concurrent.futures import ThreadPoolExecutor
-
 from extraction.extraction_engine import ExtractionEngine
+
 from detection.detection_engine import DetectionEngine
 
 from models.investigation_result import InvestigationResult
@@ -14,50 +13,38 @@ class InvestigationService:
 
         self.detector = DetectionEngine()
 
-    def _investigate_event(self, event):
-
-        extracted = self.extractor.extract(
-            event.raw_data
-        )
-
-        investigation = InvestigationResult(
-
-            event=event,
-
-            iocs=extracted["iocs"],
-
-            users=extracted["users"],
-
-            assets=extracted["assets"],
-
-            processes=extracted["processes"],
-
-            network=extracted["network"]
-
-        )
-
-        self.detector.detect(
-            investigation
-        )
-
-        return investigation
-
     def investigate(self, events):
 
-        workers = min(8, len(events))
+        investigations = []
 
-        with ThreadPoolExecutor(
-            max_workers=workers
-        ) as executor:
+        for event in events:
 
-            return list(
+            extracted = self.extractor.extract(
+                event.raw_data
+            )
 
-                executor.map(
+            investigation = InvestigationResult(
 
-                    self._investigate_event,
+                event=event,
 
-                    events
+                iocs=extracted["iocs"],
 
-                )
+                users=extracted["users"],
+
+                assets=extracted["assets"],
+
+                processes=extracted["processes"],
+
+                network=extracted["network"]
 
             )
+
+            self.detector.detect(
+                investigation
+            )
+
+            investigations.append(
+                investigation
+            )
+
+        return investigations

@@ -11,31 +11,28 @@ class SigmaEngine:
 
     def detect(self, investigation):
 
-        alerts = getattr(
+        if not hasattr(
             investigation,
-            "alerts",
-            None
+            "alerts"
+        ):
+
+            investigation.alerts = []
+
+        event = investigation.event
+
+        if event.event_code is None:
+
+            return investigation
+
+        rule = self.rules.get(
+            str(event.event_code)
         )
 
-        if alerts is None:
-
-            alerts = []
-
-            investigation.alerts = alerts
-
-        event_code = investigation.event.event_code
-
-        if event_code is None:
+        if not rule:
 
             return investigation
 
-        rule = self.rules.get(str(event_code))
-
-        if rule is None:
-
-            return investigation
-
-        alerts.append({
+        investigation.alerts.append({
 
             "rule": rule["rule"],
 

@@ -57,134 +57,140 @@ class IOCExtractor:
     def extract(self, text):
 
         if not text:
+
             return []
 
         text = str(text)
 
-        lower = text.lower()
-
         iocs = []
 
-        if "." in text:
-            iocs.extend(
-                self._build(
-                    "IP",
-                    self.IPV4.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "IP",
+                self.IPV4.findall(text)
             )
+        )
 
-            iocs.extend(
-                self._build(
-                    "Domain",
-                    self.DOMAIN.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "IPv6",
+                self.IPV6.findall(text)
             )
+        )
 
-        if ":" in text:
-            iocs.extend(
-                self._build(
-                    "IPv6",
-                    self.IPV6.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "Domain",
+                self.DOMAIN.findall(text)
             )
+        )
 
-        if "http" in lower:
-            iocs.extend(
-                self._build(
-                    "URL",
-                    self.URL.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "URL",
+                self.URL.findall(text)
             )
+        )
 
-        if "@" in text:
-            iocs.extend(
-                self._build(
-                    "Email",
-                    self.EMAIL.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "Email",
+                self.EMAIL.findall(text)
             )
+        )
 
-        if len(text) >= 32:
-
-            iocs.extend(
-                self._build(
-                    "MD5",
-                    self.MD5.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "MD5",
+                self.MD5.findall(text)
             )
+        )
 
-            iocs.extend(
-                self._build(
-                    "SHA1",
-                    self.SHA1.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "SHA1",
+                self.SHA1.findall(text)
             )
+        )
 
-            iocs.extend(
-                self._build(
-                    "SHA256",
-                    self.SHA256.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "SHA256",
+                self.SHA256.findall(text)
             )
+        )
 
-        if "\\" in text and ":" in text:
-            iocs.extend(
-                self._build(
-                    "Windows Path",
-                    self.WINDOWS_PATH.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "Windows Path",
+                self.WINDOWS_PATH.findall(text)
             )
+        )
 
-        if "/" in text:
-            iocs.extend(
-                self._build(
-                    "Linux Path",
-                    self.LINUX_PATH.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "Linux Path",
+                self.LINUX_PATH.findall(text)
             )
+        )
 
-        if "HKEY_" in text:
-            iocs.extend(
-                self._build(
-                    "Registry",
-                    self.REGISTRY.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "Registry",
+                self.REGISTRY.findall(text)
             )
+        )
 
-        if "." in text:
-            iocs.extend(
-                self._build(
-                    "File",
-                    self.FILE.findall(text)
-                )
+        iocs.extend(
+            self._build(
+                "File",
+                self.FILE.findall(text)
             )
+        )
 
-        return self._deduplicate(iocs)
+        return self._deduplicate(
+            iocs
+        )
 
-    def _build(self, ioc_type, values):
-
-        if not values:
-            return []
+    def _build(
+        self,
+        ioc_type,
+        values
+    ):
 
         return [
+
             IOC(
+
                 type=ioc_type,
+
                 value=value
+
             )
+
             for value in values
+
         ]
 
-    def _deduplicate(self, iocs):
+    def _deduplicate(
+        self,
+        iocs
+    ):
 
         unique = {}
 
         for ioc in iocs:
 
-            unique[
-                (
-                    ioc.type,
-                    ioc.value.lower()
-                )
-            ] = ioc
+            key = (
 
-        return list(unique.values())
+                ioc.type,
+
+                ioc.value.lower()
+
+            )
+
+            unique[key] = ioc
+
+        return list(
+            unique.values()
+        )
