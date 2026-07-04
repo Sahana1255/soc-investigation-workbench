@@ -5,13 +5,9 @@ from models.relationship import Relationship
 
 class CorrelationEngine:
 
-    # Maximum number of events to correlate per shared value.
-    # Prevents exponential relationship generation.
     MAX_EVENTS_PER_GROUP = 50
 
     def correlate(self, investigations):
-
-        relationships = []
 
         indexes = {
 
@@ -29,149 +25,87 @@ class CorrelationEngine:
 
         }
 
-        # -------------------------------------------------
-        # Build Correlation Indexes
-        # -------------------------------------------------
-
         for investigation in investigations:
 
             event = investigation.event
 
             if event.username:
-
-                indexes["user"][
-                    event.username
-                ].append(event)
+                indexes["user"][event.username].append(event)
 
             if event.hostname:
-
-                indexes["host"][
-                    event.hostname
-                ].append(event)
+                indexes["host"][event.hostname].append(event)
 
             if event.source_ip:
-
-                indexes["ip"][
-                    event.source_ip
-                ].append(event)
+                indexes["ip"][event.source_ip].append(event)
 
             if event.process:
-
-                indexes["process"][
-                    event.process
-                ].append(event)
+                indexes["process"][event.process].append(event)
 
             for ioc in investigation.iocs:
-
-                indexes["ioc"][
-                    ioc.value
-                ].append(event)
+                indexes["ioc"][ioc.value].append(event)
 
             for technique in investigation.techniques:
 
-                # Use official MITRE ID if available,
-                # otherwise fall back to technique name.
                 key = getattr(
                     technique,
                     "attack_id",
                     None
                 ) or technique.technique
 
-                indexes["technique"][
-                    key
-                ].append(event)
+                indexes["technique"][key].append(event)
 
-        # -------------------------------------------------
-        # Build Relationships
-        # -------------------------------------------------
+        unique = {}
 
         for category_name, category in indexes.items():
 
             for value, events in category.items():
 
                 if len(events) < 2:
-
                     continue
 
-                # Limit correlation size to avoid millions
-                # of relationships for very common values.
-                events = events[
-                    :self.MAX_EVENTS_PER_GROUP
-                ]
+                if len(events) > self.MAX_EVENTS_PER_GROUP:
+                    events = events[:self.MAX_EVENTS_PER_GROUP]
 
-                for i in range(len(events) - 1):
+                event_count = len(events)
 
-                    for j in range(i + 1, len(events)):
+                for i in range(event_count - 1):
 
-                        relationships.append(
+                    source = str(events[i].event_id)
 
-                            Relationship(
+                    for j in range(i + 1, event_count):
 
-                                source=str(
-                                    events[i].event_id
-                                ),
+                        target = str(events[j].event_id)
 
-                                target=str(
-                                    events[j].event_id
-                                ),
+                        pair = tuple(sorted((source, target)))
 
-                                relationship_type="RELATED",
+                        if pair in unique:
+                            continue
 
-                                confidence=100,
+                        unique[pair] = Relationship(
 
-                                description=(
-                                    f"Correlated by "
-                                    f"{category_name}: {value}"
-                                )
+                            source=source,
 
+                            target=target,
+
+                            relationship_type="RELATED",
+
+                            confidence=100,
+
+                            description=(
+                                f"Correlated by "
+                                f"{category_name}: {value}"
                             )
 
                         )
 
-        # -------------------------------------------------
-        # Remove Duplicate Relationships
-        # -------------------------------------------------
-
-        unique = {}
-
-        for relationship in relationships:
-
-            key = (
-
-                tuple(
-
-                    sorted(
-
-                        [
-
-                            relationship.source,
-
-                            relationship.target
-
-                        ]
-
-                    )
-
-                ),
-
-                relationship.relationship_type
-
-            )
-
-            unique[key] = relationship
+        relationships = list(unique.values())
 
         return {
 
-            "relationships": list(
-                unique.values()
-            ),
+            "relationships": relationships,
 
-            "relationship_count": len(
-                unique
-            ),
+            "relationship_count": len(relationships),
 
-            "investigation_count": len(
-                investigations
-            )
+            "investigation_count": len(investigations)
 
         }

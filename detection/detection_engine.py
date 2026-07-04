@@ -13,63 +13,43 @@ class DetectionEngine:
     def __init__(self):
 
         self.sigma = SigmaEngine()
-
         self.yara = YaraEngine()
 
         self.whitelist = WhiteList()
-
         self.blacklist = BlackList()
 
         self.reputation = ReputationEngine()
-
         self.mitre = MitreMapper()
-
         self.risk = RiskEngine()
 
     def detect(self, investigation):
 
-        self.sigma.detect(
-            investigation
-        )
+        self.sigma.detect(investigation)
+        self.yara.detect(investigation)
 
-        self.yara.detect(
-            investigation
-        )
+        if investigation.iocs:
 
-        investigation.iocs = [
+            investigation.iocs = [
+                ioc
+                for ioc in investigation.iocs
+                if not self.whitelist.contains(ioc)
+            ]
 
-            ioc
+            for ioc in investigation.iocs:
 
-            for ioc in investigation.iocs
+                if self.blacklist.contains(ioc):
 
-            if not self.whitelist.contains(ioc)
+                    ioc.reputation = "Malicious"
+                    ioc.confidence = 100
 
-        ]
+            self.reputation.enrich(investigation)
 
-        for ioc in investigation.iocs:
-
-            if self.blacklist.contains(ioc):
-
-                ioc.reputation = "Malicious"
-
-                ioc.confidence = 100
-
-        self.reputation.enrich(
-            investigation
-        )
-
-        technique = self.mitre.map(
-            investigation.event
-        )
+        technique = self.mitre.map(investigation.event)
 
         if technique:
 
-            investigation.techniques.append(
-                technique
-            )
+            investigation.techniques.append(technique)
 
-        self.risk.assess(
-            investigation
-        )
+        self.risk.assess(investigation)
 
         return investigation

@@ -5,34 +5,53 @@ class YaraEngine:
 
     def __init__(self):
 
-        self.rules = JSONLoader.load(
+        rules = JSONLoader.load(
             "schemas/yara_rules.json"
         )
 
+        self.rules = {
+
+            keyword.lower(): rule
+
+            for keyword, rule in rules.items()
+
+        }
+
     def detect(self, investigation):
 
-        if not hasattr(
+        alerts = getattr(
             investigation,
-            "alerts"
-        ):
+            "alerts",
+            None
+        )
 
-            investigation.alerts = []
+        if alerts is None:
 
-        text = str(
-            investigation.event.raw_data
-        ).lower()
+            alerts = []
+
+            investigation.alerts = alerts
+
+        raw = investigation.event.raw_data
+
+        if not raw:
+
+            return investigation
+
+        text = str(raw).lower()
 
         for keyword, rule in self.rules.items():
 
-            if keyword.lower() in text:
+            if keyword in text:
 
-                investigation.alerts.append({
+                alerts.append({
 
                     "rule": rule,
 
                     "severity": "High",
 
-                    "description": f"Matched keyword '{keyword}'"
+                    "description": (
+                        f"Matched keyword '{keyword}'"
+                    )
 
                 })
 

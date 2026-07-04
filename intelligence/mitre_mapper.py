@@ -11,7 +11,6 @@ class MitreMapper:
             "schemas/mitre_schema.json"
         )
 
-        # Cache event_code -> Technique
         self.cache = {}
 
     def map(self, event):
@@ -21,21 +20,14 @@ class MitreMapper:
 
         event_code = str(event.event_code)
 
-        # -------------------------------
-        # Return cached mapping
-        # -------------------------------
+        technique = self.cache.get(event_code)
 
-        if event_code in self.cache:
-
-            return self.cache[event_code]
-
-        # -------------------------------
-        # Load rule
-        # -------------------------------
+        if technique is not None:
+            return technique
 
         rule = self.rules.get(event_code)
 
-        if not rule:
+        if rule is None:
             return None
 
         technique = Technique(
@@ -61,10 +53,6 @@ class MitreMapper:
             )
 
         )
-
-        # -------------------------------
-        # Store in cache
-        # -------------------------------
 
         self.cache[event_code] = technique
 

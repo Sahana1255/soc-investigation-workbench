@@ -2,10 +2,15 @@ from uuid import uuid4
 from datetime import datetime
 from typing import List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class IOC(BaseModel):
+
+    model_config = ConfigDict(
+        validate_assignment=False,
+        extra="ignore"
+    )
 
     ioc_id: str = Field(
         default_factory=lambda: f"IOC-{uuid4().hex[:8].upper()}"
